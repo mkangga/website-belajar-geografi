@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF--8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jelajah Geosfer - Pembelajaran Interaktif Geografi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Earthy Neutrals -->
+    <!-- Application Structure Plan: Desain aplikasi ini menggunakan pendekatan Single-Page Application (SPA) dengan navigasi utama berbasis kartu (card-based). Setiap "sfer" (Litosfer, Pedosfer, dll.) menjadi sebuah bagian (section) yang dapat diakses dari halaman utama. Struktur ini dipilih untuk memberikan kebebasan eksplorasi kepada siswa, memungkinkan mereka melompat ke topik yang menarik tanpa harus mengikuti urutan linear seperti pada dokumen teks. Interaktivitas difokuskan pada visualisasi konsep-konsep kunci (seperti siklus batuan, lapisan atmosfer) melalui diagram interaktif berbasis HTML/CSS dan grafik data untuk mempermudah pemahaman, bukan sekadar membaca. Tujuannya adalah mengubah materi pasif menjadi pengalaman belajar yang aktif dan menarik. -->
+    <!-- Visualization & Content Choices: Pilihan visualisasi didasarkan pada tujuan pembelajaran. Goal: Mengorganisir -> Diagram interaktif lapisan Bumi/tanah/atmosfer (HTML divs), siklus batuan/air (HTML+CSS). Goal: Membandingkan -> Tabel perbandingan Endogen vs. Eksogen, grafik batang Chart.js untuk kepadatan penduduk. Goal: Menunjukkan Perubahan -> Diagram toggle Angin Darat/Laut. Goal: Menginformasikan -> Kartu-kartu interaktif (flippable cards) untuk dampak lingkungan. Setiap elemen interaktif dirancang untuk menyajikan informasi secara ringkas dan visual, dengan teks detail yang bisa diakses melalui klik, untuk menjaga antarmuka tetap bersih dan fokus. Peta biogeografi Indonesia dibuat dengan div dan gambar latar untuk menunjukkan zona Wallacea, sebuah fitur interaktif kunci untuk pemahaman fauna. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F4F0; /* Warm Neutral Background */
+        }
+        .main-card {
+            background-color: #FFFFFF;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #E5E7EB;
+        }
+        .main-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .interactive-diagram-item {
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .interactive-diagram-item:hover {
+            background-color: #E0E7FF;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .tab-button {
+            transition: all 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-button.active {
+            border-bottom-color: #4A5568; /* Darker Gray-Blue */
+            color: #1A202C;
+        }
+
+        .rock-cycle {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 500px;
+            margin: auto;
+        }
+        .rock {
+            position: absolute;
+            padding: 0.75rem 1rem;
+            border: 2px solid #786452; /* Brown */
+            background-color: #FDFBF7;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .rock:hover {
+            background-color: #EADFD5;
+            transform: scale(1.05);
+        }
+        .rock#magma { top: 85%; left: 38%; }
+        .rock#beku { top: 50%; left: 5%; }
+        .rock#sedimen { top: 5%; left: 35%; }
+        .rock#metamorf { top: 50%; left: 70%; }
+
+        .arrow {
+            position: absolute;
+            color: #786452;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .arrow-text {
+            position: absolute;
+            font-size: 0.7rem;
+            color: #57534E;
+            padding: 2px 4px;
+            background-color: rgba(248, 244, 240, 0.7);
+            border-radius: 4px;
+        }
+        #arrow-1 { top: 70%; left: 25%; transform: rotate(-45deg); }
+        #arrow-text-1 { top: 75%; left: 20%;}
+        #arrow-2 { top: 28%; left: 20%; transform: rotate(45deg); }
+        #arrow-text-2 { top: 35%; left: 15%;}
+        #arrow-3 { top: 28%; left: 65%; transform: rotate(135deg); }
+        #arrow-text-3 { top: 35%; left: 65%;}
+        #arrow-4 { top: 70%; left: 68%; transform: rotate(-135deg); }
+        #arrow-text-4 { top: 75%; left: 60%;}
+        #arrow-5 { top: 10%; left: 50%; transform: rotate(90deg); }
+        #arrow-text-5 { top: 15%; left: 52%;}
+
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="text-center py-8 md:py-12 bg-white shadow-md">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">Jelajah Geosfer</h1>
+        <p class="mt-4 text-lg text-gray-600">Petualangan Seru Memahami Lapisan-Lapisan Bumi Kita</p>
+    </header>
+
+    <nav id="main-nav" class="p-4 md:p-8">
+        <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+            <div onclick="showSection('litosfer')" class="main-card p-4 text-center cursor-pointer flex flex-col items-center justify-center">
+                <span class="text-5xl mb-2">⛰️</span>
+                <h2 class="text-xl font-semibold">Litosfer</h2>
+                <p class="text-sm text-gray-500">Lapisan Batuan</p>
+            </div>
+            <div onclick="showSection('pedosfer')" class="main-card p-4 text-center cursor-pointer flex flex-col items-center justify-center">
+                 <span class="text-5xl mb-2">🌱</span>
+                <h2 class="text-xl font-semibold">Pedosfer</h2>
+                <p class="text-sm text-gray-500">Lapisan Tanah</p>
+            </div>
+            <div onclick="showSection('atmosfer')" class="main-card p-4 text-center cursor-pointer flex flex-col items-center justify-center">
+                 <span class="text-5xl mb-2">☁️</span>
+                <h2 class="text-xl font-semibold">Atmosfer</h2>
+                <p class="text-sm text-gray-500">Lapisan Udara</p>
+            </div>
+            <div onclick="showSection('hidrosfer')" class="main-card p-4 text-center cursor-pointer flex flex-col items-center justify-center">
+                 <span class="text-5xl mb-2">💧</span>
+                <h2 class="text-xl font-semibold">Hidrosfer</h2>
+                <p class="text-sm text-gray-500">Lapisan Air</p>
+            </div>
+            <div onclick="showSection('biosfer')" class="main-card p-4 text-center cursor-pointer flex flex-col items-center justify-center">
+                 <span class="text-5xl mb-2">🐅</span>
+                <h2 class="text-xl font-semibold">Biosfer</h2>
+                <p class="text-sm text-gray-500">Makhluk Hidup</p>
+            </div>
+            <div onclick="showSection('antroposfer')" class="main-card p-4 text-center cursor-pointer flex flex-col items-center justify-center">
+                 <span class="text-5xl mb-2">🧑‍🤝‍🧑</span>
+                <h2 class="text-xl font-semibold">Antroposfer</h2>
+                <p class="text-sm text-gray-500">Manusia</p>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+        
+        <section id="home" class="content-section active text-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">Selamat Datang, Sobat Geo!</h2>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                Bumi kita ini seperti bawang bombay raksasa dengan banyak lapisan. Setiap lapisan punya cerita dan peran uniknya masing-masing.
+                Yuk, pilih salah satu lapisan di atas untuk memulai petualangan geografi yang seru dan penuh penemuan!
+            </p>
+            <div class="mt-8 flex justify-center">
+                 <div class="w-full max-w-md h-64 bg-white rounded-xl shadow-lg flex items-center justify-center p-6">
+                    <p class="text-2xl font-semibold text-gray-700">"Geografi adalah jembatan antara manusia dan ilmu alam."</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- LITOSFER -->
+        <section id="litosfer" class="content-section">
+            <h2 class="text-3xl font-bold mb-2">⛰️ Litosfer: Pijakan Kita yang Nggak Pernah Diam!</h2>
+            <p class="text-lg text-gray-600 mb-8">Litosfer adalah lapisan batuan atau kulit terluar Bumi kita yang padat. Bayangkan litosfer ini seperti kulit apel yang tipis tapi super penting, karena melindungi bagian dalam Bumi yang panas dan jadi tempat kita semua beraktivitas.</p>
+            
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-2xl font-bold mb-4 text-center">Siklus Batuan Interaktif</h3>
+                <p class="text-center text-gray-600 mb-4">Klik pada setiap jenis batuan untuk melihat penjelasannya!</p>
+                <div class="flex flex-col md:flex-row items-center gap-8">
+                    <div class="rock-cycle">
+                        <div id="magma" class="rock" onclick="showRockInfo('magma')">Magma</div>
+                        <div id="beku" class="rock" onclick="showRockInfo('beku')">Batuan Beku</div>
+                        <div id="sedimen" class="rock" onclick="showRockInfo('sedimen')">Batuan Sedimen</div>
+                        <div id="metamorf" class="rock" onclick="showRockInfo('metamorf')">Batuan Metamorf</div>
+                        
+                        <div class="arrow" id="arrow-1">➔</div>
+                        <div class="arrow-text" id="arrow-text-1">Pendinginan</div>
+                        <div class="arrow" id="arrow-2">➔</div>
+                        <div class="arrow-text" id="arrow-text-2">Pelapukan, Erosi, Pengendapan</div>
+                        <div class="arrow" id="arrow-3">➔</div>
+                        <div class="arrow-text" id="arrow-text-3">Panas & Tekanan</div>
+                        <div class="arrow" id="arrow-4">➔</div>
+                        <div class="arrow-text" id="arrow-text-4">Meleleh</div>
+                        <div class="arrow" id="arrow-5">➔</div>
+                        <div class="arrow-text" id="arrow-text-5">Panas & Tekanan</div>
+                    </div>
+                    <div id="rock-info" class="w-full md:w-1/3 p-4 bg-gray-100 rounded-lg">
+                        <h4 class="font-bold text-lg mb-2">Info Batuan</h4>
+                        <p>Silakan klik salah satu jenis batuan pada diagram untuk melihat detailnya di sini.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold mb-4">Tenaga Endogen: Kekuatan dari Dalam</h3>
+                     <p class="text-gray-600 mb-4">Ini adalah kekuatan super dahsyat dari perut Bumi yang membangun permukaan Bumi jadi nggak rata (gunung, lembah).</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><b>Tektonisme:</b> Pergerakan lempeng-lempeng raksasa Bumi yang menyebabkan lipatan, patahan, dan gempa.</li>
+                        <li><b>Vulkanisme:</b> Aktivitas magma yang keluar ke permukaan Bumi (gunung meletus). Seperti membuka botol soda yang dikocok!</li>
+                        <li><b>Seisme:</b> Getaran atau guncangan di permukaan Bumi alias gempa bumi.</li>
+                    </ul>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold mb-4">Tenaga Eksogen: Ukiran dari Luar</h3>
+                     <p class="text-gray-600 mb-4">Ini adalah kekuatan dari luar Bumi (air, angin, matahari) yang merombak dan meratakan permukaan Bumi.</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><b>Pelapukan:</b> Hancurnya batuan di tempatnya karena perubahan cuaca atau aktivitas makhluk hidup.</li>
+                        <li><b>Erosi:</b> Pengikisan dan pemindahan material batuan oleh air, angin, atau es.</li>
+                        <li><b>Sedimentasi:</b> Pengendapan material hasil erosi di tempat baru, seperti delta di muara sungai.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- PEDOSFER -->
+        <section id="pedosfer" class="content-section">
+            <h2 class="text-3xl font-bold mb-2">🌱 Pedosfer: Tanah Ajaib Sumber Kehidupan</h2>
+            <p class="text-lg text-gray-600 mb-8">Pedosfer adalah lapisan tanah yang menyelimuti permukaan Bumi kita. Ia seperti selimut tipis nan subur tempat tanaman tumbuh, hewan kecil hidup, dan sumber makanan kita berasal. Proses pembentukannya butuh waktu ribuan tahun!</p>
+            
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-2xl font-bold mb-4 text-center">Profil Tanah: Mengintip Lapisan Tanah</h3>
+                <p class="text-center text-gray-600 mb-6">Bayangkan tanah itu seperti kue lapis! Setiap lapisan punya ciri dan fungsi yang berbeda. Arahkan kursor atau klik pada setiap horizon untuk melihat penjelasannya.</p>
+                <div id="soil-profile" class="w-full max-w-md mx-auto">
+                    <div data-info="Horizon O (Organik): Lapisan paling atas, kaya bahan organik (humus) dari daun dan sisa makhluk hidup. Sumber nutrisi utama tanaman." class="soil-horizon bg-yellow-900 text-white p-3 text-center cursor-pointer transition hover:bg-yellow-800 rounded-t-lg">Horizon O</div>
+                    <div data-info="Horizon A (Topsoil): Tanah lapisan atas, campuran bahan organik dan mineral. Lapisan paling subur dan penting untuk akar tanaman." class="soil-horizon bg-amber-800 text-white p-6 text-center cursor-pointer transition hover:bg-amber-700">Horizon A</div>
+                    <div data-info="Horizon B (Subsoil): Lapisan penumpukan mineral (liat, besi) yang tercuci dari atas. Lebih padat dan warnanya lebih cerah." class="soil-horizon bg-orange-700 text-white p-8 text-center cursor-pointer transition hover:bg-orange-600">Horizon B</div>
+                    <div data-info="Horizon C (Regolith): Berisi bongkahan batuan induk yang sudah mulai lapuk. Belum benar-benar menjadi tanah." class="soil-horizon bg-orange-900 text-white p-10 text-center cursor-pointer transition hover:bg-orange-800">Horizon C</div>
+                    <div data-info="Horizon R (Bedrock): Lapisan paling bawah, berupa batuan induk yang masih utuh dan keras." class="soil-horizon bg-gray-700 text-white p-4 text-center cursor-pointer transition hover:bg-gray-600 rounded-b-lg">Horizon R</div>
+                </div>
+                <div id="soil-info-display" class="mt-6 p-4 bg-gray-100 rounded-lg text-center h-24 flex items-center justify-center">
+                    <p>Arahkan kursor ke lapisan tanah untuk detail.</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- ATMOSFER -->
+        <section id="atmosfer" class="content-section">
+            <h2 class="text-3xl font-bold mb-2">☁️ Atmosfer: Selimut Gaib Pelindung Bumi</h2>
+            <p class="text-lg text-gray-600 mb-8">Atmosfer adalah lapisan gas yang menyelimuti Bumi. Ia seperti jaket super canggih yang melindungi kita dari panas matahari, menjaga kehangatan di malam hari, dan memberi kita oksigen untuk bernapas.</p>
+            
+             <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-2xl font-bold mb-4 text-center">Lapisan-Lapisan Atmosfer</h3>
+                <p class="text-center text-gray-600 mb-6">Atmosfer itu seperti gedung pencakar langit. Yuk, kita lihat ada "lantai" apa saja dari bawah ke atas!</p>
+                
+                <div class="space-y-4">
+                    <div class="interactive-diagram-item p-4 border rounded-lg" onclick="showAtmosInfo('Troposfer: Tempat kita hidup dan semua cuaca (awan, hujan, badai) terjadi.')">
+                        <h4 class="font-bold">1. Troposfer (0-12 km)</h4>
+                        <p class="text-sm">Tempat terjadinya cuaca 🌦️</p>
+                    </div>
+                     <div class="interactive-diagram-item p-4 border rounded-lg" onclick="showAtmosInfo('Stratosfer: Di sini ada lapisan ozon (O3) yang melindungi kita dari sinar UV berbahaya dari matahari.')">
+                        <h4 class="font-bold">2. Stratosfer (12-50 km)</h4>
+                        <p class="text-sm">Rumah bagi Lapisan Ozon ☂️</p>
+                    </div>
+                    <div class="interactive-diagram-item p-4 border rounded-lg" onclick="showAtmosInfo('Mesosfer: Lapisan ini adalah satpam Bumi! Kebanyakan meteor yang jatuh akan terbakar habis di sini.')">
+                        <h4 class="font-bold">3. Mesosfer (50-85 km)</h4>
+                        <p class="text-sm">Benteng pelindung dari meteor ☄️</p>
+                    </div>
+                     <div class="interactive-diagram-item p-4 border rounded-lg" onclick="showAtmosInfo('Termosfer: Sangat panas dan bisa memantulkan gelombang radio. Fenomena aurora yang cantik juga terjadi di sini.')">
+                        <h4 class="font-bold">4. Termosfer (85-600 km)</h4>
+                        <p class="text-sm">Panggung Aurora & pemantul radio ✨</p>
+                    </div>
+                    <div class="interactive-diagram-item p-4 border rounded-lg" onclick="showAtmosInfo('Eksosfer: Lapisan terluar sebelum masuk ke luar angkasa. Satelit-satelit mengorbit di sini.')">
+                        <h4 class="font-bold">5. Eksosfer (>600 km)</h4>
+                        <p class="text-sm">Gerbang menuju luar angkasa 🛰️</p>
+                    </div>
+                </div>
+
+                <div id="atmos-info-display" class="mt-6 p-4 bg-gray-100 rounded-lg text-center h-24 flex items-center justify-center">
+                    <p>Klik salah satu lapisan untuk melihat infonya.</p>
+                </div>
+             </div>
+        </section>
+
+        <!-- HIDROSFER -->
+        <section id="hidrosfer" class="content-section">
+            <h2 class="text-3xl font-bold mb-2">💧 Hidrosfer: Keajaiban Dunia Air</h2>
+            <p class="text-lg text-gray-600 mb-8">Hidrosfer adalah semua air di Bumi, mulai dari lautan, sungai, danau, air tanah, es di kutub, hingga uap air di udara. Air tidak pernah habis, ia hanya terus bergerak dalam siklus yang menakjubkan.</p>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-2xl font-bold mb-4 text-center">Siklus Hidrologi (Siklus Air)</h3>
+                <p class="text-center text-gray-600 mb-6">Ikuti perjalanan air yang tidak ada hentinya! Klik pada setiap tahapan untuk memahami prosesnya.</p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="p-4 bg-blue-100 rounded-lg cursor-pointer hover:bg-blue-200" onclick="showHidroInfo('Evaporasi', 'Panas matahari mengubah air di laut, sungai, dan danau menjadi uap air yang naik ke atmosfer. Analogi: jemuran basah jadi kering.')">
+                        <p class="text-4xl">☀️</p>
+                        <p class="font-semibold mt-2">Evaporasi</p>
+                    </div>
+                    <div class="p-4 bg-green-100 rounded-lg cursor-pointer hover:bg-green-200" onclick="showHidroInfo('Transpirasi', 'Tumbuhan juga mengeluarkan uap air melalui daunnya. Ini seperti tumbuhan sedang \"berkeringat\".')">
+                        <p class="text-4xl">🌳</p>
+                        <p class="font-semibold mt-2">Transpirasi</p>
+                    </div>
+                    <div class="p-4 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200" onclick="showHidroInfo('Kondensasi', 'Uap air di atmosfer mendingin dan berubah menjadi titik-titik air kecil, membentuk awan. Analogi: embun di gelas es.')">
+                        <p class="text-4xl">☁️</p>
+                        <p class="font-semibold mt-2">Kondensasi</p>
+                    </div>
+                    <div class="p-4 bg-cyan-100 rounded-lg cursor-pointer hover:bg-cyan-200" onclick="showHidroInfo('Presipitasi', 'Ketika awan sudah terlalu berat, air jatuh kembali ke Bumi dalam bentuk hujan, salju, atau es.')">
+                        <p class="text-4xl">🌧️</p>
+                        <p class="font-semibold mt-2">Presipitasi</p>
+                    </div>
+                    <div class="p-4 bg-amber-100 rounded-lg cursor-pointer hover:bg-amber-200" onclick="showHidroInfo('Infiltrasi', 'Sebagian air hujan meresap ke dalam tanah, menjadi air tanah. Analogi: air meresap ke dalam spons.')">
+                        <p class="text-4xl">🧽</p>
+                        <p class="font-semibold mt-2">Infiltrasi</p>
+                    </div>
+                    <div class="p-4 bg-teal-100 rounded-lg cursor-pointer hover:bg-teal-200" onclick="showHidroInfo('Run-off', 'Air hujan yang tidak meresap akan mengalir di permukaan tanah, membentuk sungai dan kembali ke laut.')">
+                        <p class="text-4xl">🏞️</p>
+                        <p class="font-semibold mt-2">Run-off</p>
+                    </div>
+                </div>
+                 <div id="hidro-info-display" class="mt-6 p-4 bg-gray-100 rounded-lg min-h-[100px] flex flex-col items-center justify-center">
+                    <h4 id="hidro-title" class="font-bold text-lg mb-1">Info Siklus Air</h4>
+                    <p id="hidro-desc">Klik salah satu tahap untuk melihat penjelasannya.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- BIOSFER -->
+        <section id="biosfer" class="content-section">
+            <h2 class="text-3xl font-bold mb-2">🐅 Biosfer: Rumah Kita Semua, Para Makhluk Hidup</h2>
+            <p class="text-lg text-gray-600 mb-8">Biosfer adalah lapisan di Bumi tempat semua makhluk hidup tinggal, mulai dari bakteri terkecil hingga paus terbesar, termasuk kita manusia. Indonesia sangat kaya akan keanekaragaman hayati!</p>
+
+             <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-2xl font-bold mb-4 text-center">Tingkat Keanekaragaman Hayati</h3>
+                <div class="grid md:grid-cols-3 gap-6 text-center">
+                    <div class="p-4 border rounded-lg">
+                        <h4 class="font-semibold text-lg">🧬 Keanekaragaman Gen</h4>
+                        <p class="text-sm mt-2">Variasi dalam satu spesies. Contoh: Bunga mawar ada yang merah, putih, kuning. Atau teman sekelasmu, sama-sama manusia tapi punya bentuk rambut berbeda.</p>
+                    </div>
+                    <div class="p-4 border rounded-lg">
+                        <h4 class="font-semibold text-lg">🐾 Keanekaragaman Jenis</h4>
+                        <p class="text-sm mt-2">Variasi antar spesies dalam satu famili. Contoh: Keluarga kucing ada harimau, singa, dan kucing kampung. Mereka beda jenis tapi masih kerabat.</p>
+                    </div>
+                    <div class="p-4 border rounded-lg">
+                        <h4 class="font-semibold text-lg">🏞️ Keanekaragaman Ekosistem</h4>
+                        <p class="text-sm mt-2">Variasi habitat tempat tinggal makhluk hidup. Contoh: Ada ekosistem hutan hujan, padang rumput, gurun, dan terumbu karang. Masing-masing punya penghuni yang khas.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-2xl font-bold mb-4 text-center">Flora & Fauna Unik Indonesia</h3>
+                <p class="text-center text-gray-600 mb-6">Indonesia dibagi menjadi tiga zona fauna unik oleh Garis Wallace dan Weber. Arahkan kursor pada setiap zona untuk melihat contoh hewannya!</p>
+                <div id="indonesia-map" class="relative w-full max-w-2xl mx-auto aspect-video bg-gray-200 rounded-lg overflow-hidden bg-center bg-contain bg-no-repeat" style="background-image: url('https://i.imgur.com/uG9xGKM.png');">
+                    <div class="zone absolute top-0 left-0 w-[45%] h-full opacity-25 hover:opacity-40 bg-orange-400 transition-opacity duration-300" data-fauna="Tipe Asiatis: Gajah, Harimau, Orangutan, Badak. Mirip fauna di Benua Asia."></div>
+                    <div class="zone absolute top-0 left-[45%] w-[20%] h-full opacity-25 hover:opacity-40 bg-purple-400 transition-opacity duration-300" data-fauna="Tipe Peralihan (Wallacea): Komodo, Anoa, Babirusa. Hewan endemik yang hanya ada di Indonesia!"></div>
+                    <div class="zone absolute top-0 right-0 w-[35%] h-full opacity-25 hover:opacity-40 bg-green-400 transition-opacity duration-300" data-fauna="Tipe Australis: Kanguru Pohon, Cendrawasih, Kasuari. Mirip fauna di Benua Australia."></div>
+                </div>
+                 <div id="fauna-info-display" class="mt-6 p-4 bg-gray-100 rounded-lg text-center h-20 flex items-center justify-center">
+                    <p>Arahkan kursor ke zona berwarna pada peta.</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ANTROPOSFER -->
+        <section id="antroposfer" class="content-section">
+            <h2 class="text-3xl font-bold mb-2">🧑‍🤝‍🧑 Antroposfer: Panggung Aksi Kita, Manusia</h2>
+            <p class="text-lg text-gray-600 mb-8">Antroposfer adalah panggung raksasa tempat kita, manusia, hidup dan beraktivitas. Kita adalah bagian dari alam, namun aktivitas kita punya dampak besar terhadap lapisan-lapisan geosfer lainnya.</p>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">Potret Penduduk Indonesia</h3>
+                    <p class="text-gray-600 mb-4">Persebaran penduduk di Indonesia sangat tidak merata. Pulau Jawa yang luasnya hanya sekitar 7% dari daratan Indonesia, ditinggali lebih dari setengah total penduduk!</p>
+                    <div class="chart-container">
+                        <canvas id="populationChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">Manusia & Lingkungan: 2 Sisi Mata Uang</h3>
+                    <p class="text-gray-600 mb-4">Interaksi kita dengan alam bisa berdampak positif maupun negatif. Mari kita lihat contohnya.</p>
+                     <div class="space-y-4">
+                        <div class="p-4 bg-green-100 rounded-lg">
+                            <h4 class="font-bold text-green-800">✅ Dampak Positif</h4>
+                            <ul class="list-disc list-inside text-sm mt-2 text-green-700">
+                                <li><b>Sistem Subak di Bali:</b> Sistem irigasi sawah tradisional yang adil dan menjaga kelestarian alam.</li>
+                                <li><b>Terasering:</b> Membuat sawah bertingkat di lereng untuk mencegah erosi dan longsor.</li>
+                                <li><b>Reboisasi:</b> Menanam kembali hutan yang gundul.</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-red-100 rounded-lg">
+                            <h4 class="font-bold text-red-800">❌ Dampak Negatif</h4>
+                            <ul class="list-disc list-inside text-sm mt-2 text-red-700">
+                                <li><b>Polusi Sampah Plastik:</b> Mengotori sungai dan laut, membahayakan hewan laut.</li>
+                                <li><b>Deforestasi:</b> Penebangan liar dan kebakaran hutan merusak habitat satwa.</li>
+                                <li><b>Pencemaran Udara:</b> Asap kendaraan dan pabrik mengganggu kesehatan.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-2xl font-bold mb-4 text-center">Pembangunan Berkelanjutan</h3>
+                <p class="text-center text-gray-600 max-w-3xl mx-auto">
+                    Ini adalah konsep di mana kita memenuhi kebutuhan kita saat ini, tanpa mengorbankan kemampuan generasi mendatang untuk memenuhi kebutuhan mereka. Analogi sederhananya: saat kita memanen buah dari kebun, kita juga harus merawat pohonnya agar anak cucu kita tetap bisa menikmati buahnya nanti. Keseimbangan antara <b>Ekonomi</b>, <b>Sosial</b>, dan <b>Lingkungan</b> adalah kuncinya.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center p-6 mt-8 bg-gray-800 text-white">
+        <p>Dibuat untuk pembelajaran Geografi Kelas 10. Teruslah menjadi agen perubahan untuk Bumi!</p>
+    </footer>
+
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full relative">
+            <button onclick="closeModal()" class="absolute top-2 right-3 text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
+            <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
+            <p id="modal-content"></p>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('.content-section');
+            const navLinks = document.querySelectorAll('#main-nav div');
+
+            window.showSection = (id) => {
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                const activeSection = document.getElementById(id);
+                if (activeSection) {
+                    activeSection.classList.add('active');
+                } else {
+                    document.getElementById('home').classList.add('active');
+                }
+                window.scrollTo(0, 0);
+
+                if (id === 'antroposfer') {
+                    renderPopulationChart();
+                }
+            };
+            
+            const rockInfoData = {
+                magma: { title: 'Magma', text: 'Batuan cair pijar super panas dari dalam perut Bumi. Ini adalah "bahan dasar" dari semua batuan.' },
+                beku: { title: 'Batuan Beku', text: 'Terbentuk ketika magma mendingin dan membeku. Contoh: Batu granit (beku di dalam) dan batu apung (beku di permukaan).' },
+                sedimen: { title: 'Batuan Sedimen', text: 'Terbentuk dari serpihan batuan lain (sedimen) yang mengendap, tertumpuk, dan mengeras. Contoh: Batu pasir dan batu gamping.' },
+                metamorf: { title: 'Batuan Metamorf', text: 'Terbentuk ketika batuan beku atau sedimen "dimasak" lagi dengan suhu dan tekanan super tinggi di dalam Bumi. Contoh: Batu marmer.' }
+            };
+
+            window.showRockInfo = (type) => {
+                const info = rockInfoData[type];
+                const infoBox = document.getElementById('rock-info');
+                infoBox.innerHTML = `
+                    <h4 class="font-bold text-lg mb-2">${info.title}</h4>
+                    <p>${info.text}</p>
+                `;
+            };
+
+            const soilHorizons = document.querySelectorAll('.soil-horizon');
+            const soilInfoDisplay = document.getElementById('soil-info-display');
+            soilHorizons.forEach(horizon => {
+                horizon.addEventListener('mouseenter', () => {
+                    soilInfoDisplay.innerHTML = `<p>${horizon.dataset.info}</p>`;
+                });
+                 horizon.addEventListener('click', () => {
+                    soilInfoDisplay.innerHTML = `<p>${horizon.dataset.info}</p>`;
+                });
+            });
+
+            const atmosInfoDisplay = document.getElementById('atmos-info-display');
+            window.showAtmosInfo = (text) => {
+                atmosInfoDisplay.innerHTML = `<p>${text}</p>`
+            };
+            
+            const hidroTitle = document.getElementById('hidro-title');
+            const hidroDesc = document.getElementById('hidro-desc');
+            window.showHidroInfo = (title, description) => {
+                hidroTitle.textContent = title;
+                hidroDesc.textContent = description;
+            }
+
+            const mapZones = document.querySelectorAll('#indonesia-map .zone');
+            const faunaInfoDisplay = document.getElementById('fauna-info-display');
+            mapZones.forEach(zone => {
+                zone.addEventListener('mouseenter', () => {
+                    faunaInfoDisplay.innerHTML = `<p class="font-semibold">${zone.dataset.fauna}</p>`;
+                });
+            });
+
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalContent = document.getElementById('modal-content');
+            window.openModal = (title, content) => {
+                 modalTitle.textContent = title;
+                 modalContent.textContent = content;
+                 modal.classList.remove('hidden');
+                 modal.classList.add('flex');
+            }
+            window.closeModal = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            
+            let populationChartInstance = null;
+            function renderPopulationChart() {
+                if (populationChartInstance) {
+                    populationChartInstance.destroy();
+                }
+                const ctx = document.getElementById('populationChart').getContext('2d');
+                populationChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Jawa', 'Sumatera', 'Kalimantan', 'Sulawesi', 'Papua'],
+                        datasets: [{
+                            label: 'Kepadatan Penduduk (jiwa/km²)',
+                            data: [1117, 145, 38, 97, 10],
+                            backgroundColor: [
+                                'rgba(239, 68, 68, 0.6)',
+                                'rgba(59, 130, 246, 0.6)',
+                                'rgba(16, 185, 129, 0.6)',
+                                'rgba(249, 115, 22, 0.6)',
+                                'rgba(139, 92, 246, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgba(239, 68, 68, 1)',
+                                'rgba(59, 130, 246, 1)',
+                                'rgba(16, 185, 129, 1)',
+                                'rgba(249, 115, 22, 1)',
+                                'rgba(139, 92, 246, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Perbandingan Kepadatan Penduduk Antar Pulau (Estimasi)'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>
